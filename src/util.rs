@@ -1,6 +1,6 @@
 use gtk::gdk::{ContentProvider, DragAction, FileList};
 use gtk::gio::{self, File, ListStore};
-use gtk::glib::{clone, Bytes};
+use gtk::glib::clone;
 use gtk::prelude::*;
 use gtk::{gdk, glib, DragSource, DropTarget, EventSequenceState, Widget};
 
@@ -33,19 +33,14 @@ pub fn generate_file_model() -> ListStore {
 pub fn generate_content_provider<'a>(
     paths: impl IntoIterator<Item = &'a String>,
 ) -> Option<ContentProvider> {
-    let mut uri_list = paths
-        .into_iter()
-        .cloned()
-        .collect::<Vec<String>>()
-        .join("\r\n");
+    let files: Vec<File> = paths.into_iter().map(|p| File::for_uri(p)).collect();
 
-    if uri_list.is_empty() {
+    if files.is_empty() {
         return None;
-    } else {
-        uri_list += "\r\n";
-        let bytes = Bytes::from(uri_list.as_bytes());
-        Some(ContentProvider::for_bytes("text/uri-list", &bytes))
     }
+    let files_list = FileList::from_array(&files);
+
+    Some(ContentProvider::for_value(&files_list.to_value()))
 }
 /// For the -a or -A flag.
 pub fn setup_drag_source_all(drag_source: &DragSource, list_model: &ListStore) {
