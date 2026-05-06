@@ -137,21 +137,31 @@ pub fn setup_drop_target(model: &ListStore, widget: &Widget) {
         #[upgrade_or]
         false,
         move |_, value, _, _| {
+            let mut had_data_uri = false;
             let mut files_vec: Vec<File> = vec![];
 
             if let Ok(file_uris) = value.get::<&str>() {
                 files_vec = file_uris
-                    .split('\n')
-                    .collect::<Vec<&str>>()
-                    .iter()
-                    .filter_map(|uri| glib::Uri::parse(uri, glib::UriFlags::PARSE_RELAXED).ok())
-                    .map(|uri| File::for_uri(uri.to_str().as_str()))
-                    .collect();
+                    .lines()
+                    .map(|uri| uri.trim())
+                    .filter(|uri| !uri.is_empty())
+                    .filter_map(|uri| {
+                        if uri.starts_with("data:") {
+                            println!("{}", uri);
+                            had_data_uri = true;
+                            None
+                        } else {
+                            glib::Uri::parse(uri, glib::UriFlags::PARSE_RELAXED)
+                                .ok()
+                                .map(|u| File::for_uri(u.to_str().as_str()))
+                        }
+                    })
+                    .collect(); 
             } else if let Ok(files) = value.get::<gdk::FileList>() {
                 files_vec = files.files();
             }
 
-            if files_vec.is_empty() {
+            if files_vec.is_empty() && !had_data_uri {
                 return false;
             }
 
