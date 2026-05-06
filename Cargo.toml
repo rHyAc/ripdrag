@@ -21,3 +21,5 @@ async-channel = "2.5.0"
 [profile.release]
 strip = true
 lto = true
+codegen-units = 1
+panic = "abort"
